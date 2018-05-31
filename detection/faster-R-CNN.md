@@ -1,5 +1,3 @@
-
-
 ## Faster R-CNN
 [Faster R-CNN: Towards Real-Time Object Detection with Region Proposal Networks. NIPS2015.](https://arxiv.org/abs/1506.01497)
 
@@ -19,7 +17,7 @@
 
 * Anchors
 
-  前面说过, RPN网络相当于在输入图像上用一个大的滑动窗(receptive field)和一个大的步长进行滑动, 得到一些box regression输出和box classification输出. 注意这里的box regression输出是相对于输入图像滑动窗的位置而言的, 实际上相当于原版R-CNN中的bounding box regression. 而box classification输出的为这个位置的objectness score. 这里我们对于每一个receptive field定义多个anchor, 因此每一个位置可以predict多个bounding box和objectness score. 当然, 这里predict出来的bounding box是相对于anchor而言的.
+  前面说过, RPN网络相当于在输入图像上用一个大的滑动窗(receptive field)和一个大的步长进行滑动, 得到一些box regression输出和box classification输出. 注意这里的box regression输出是相对于输入图像滑动窗的位置而言的, 实际操作与原版R-CNN中的bounding box regression一致. 而box classification输出的为这个位置的objectness score. 这里我们对于每一个receptive field定义多个anchor, 因此每一个位置可以predict多个bounding box和objectness score. 当然, 这里predict出来的bounding box是相对于anchor而言的. (这里的box regression仅仅是RPN网络中对anchor的修正, 在随后的detection模型中, 会有一个box regression对这个修正之后的bounding box再进行修正)
 
   An anchor is centered at the sliding window in question, and is associated with a scale and aspect ratio. By default we use 3 scales and 3 aspect ratios, yielding k = 9 anchors at each sliding position.
 
@@ -38,3 +36,10 @@
   这里每一次训练一个sample, 即mini-batch=1, 从中随机选出128个正的anchor和128个负的anchor进行训练, 所以训练过程很慢.
 
   It is possible to optimize for the loss functions of all anchors, but this will bias towards negative samples as they are dominate. Instead, we randomly sample 256 anchors in an image to compute the loss function of a mini-batch, where the sampled positive and negative anchors have a ratio of up to 1:1. If there are fewer than 128 positive samples in an image, we pad the mini-batch with negative ones.
+
+* faster R-CNN的测试流程
+
+  * 将输入图像过一遍公共网络, 得到feature map;
+  * 用RPN网络对feature map进行处理, 得到每一个anchor的修正值(box regression结果)及其objectness score,  取objectness score大于某个阈值的anchor, 通过修正后得到一些region proposal, 这也是RPN网络的结果.
+  * 将RPN网络输出的region proposal输入到detection network中(与RPN网络共用前面的一些卷积层), 得到这些proposal的修正值及其属于某一类的score;
+  * 做class-wise的非极大值抑制, 得到最终的识别结果.
